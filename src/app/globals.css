@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #12141a;
+  --ink-soft: #1c2029;
+  --stone: #e8e4dc;
+  --mist: #f4f1eb;
+  --copper: #c45c26;
+  --copper-bright: #e07a3d;
+  --muted: #6b6e78;
+  --line: rgba(18, 20, 26, 0.12);
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-stone: var(--stone);
+  --color-mist: var(--mist);
+  --color-copper: var(--copper);
+  --color-copper-bright: var(--copper-bright);
+  --color-muted: var(--muted);
+  --font-sans: var(--font-sora);
+  --font-display: var(--font-syne);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--mist);
+  color: var(--ink);
+  font-family: var(--font-sora), system-ui, sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-syne), system-ui, sans-serif;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes hero-drift {
+  from {
+    transform: scale(1.08) translateY(0);
+  }
+  to {
+    transform: scale(1) translateY(-1.5%);
+  }
+}
+
+@keyframes line-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-rise-delay-1 {
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.animate-rise-delay-2 {
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+
+.animate-rise-delay-3 {
+  animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+
+.hero-media {
+  animation: hero-drift 14s ease-out both;
+}
+
+.accent-line {
+  transform-origin: left;
+  animation: line-draw 1s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+}
+
+.doc-body {
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.doc-body h2 {
+  font-family: var(--font-syne), system-ui, sans-serif;
+  font-size: 1.15rem;
+  margin-top: 2.25rem;
+  break-after: avoid;
+}
+
+.doc-body h2::before {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.65rem;
+  background: var(--copper);
+  vertical-align: middle;
+}
+
+.doc-body tbody th {
+  width: 32%;
+}
+
+.doc-body .total td {
+  border-top: 2px solid var(--ink);
+  border-bottom: none;
+  font-weight: 600;
+}
+
+.doc-body .signature {
+  display: grid;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .doc-body .signature {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.doc-body .signature div {
+  border-top: 1px solid var(--ink);
+  padding-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.doc-body .signature strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.doc-body h3 {
+  font-weight: 600;
+  margin-top: 1.25rem;
+}
+
+.doc-body p {
+  margin-top: 0.75rem;
+}
+
+.doc-body ul,
+.doc-body ol {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.doc-body ul {
+  list-style: disc;
+}
+
+.doc-body ol {
+  list-style: decimal;
+}
+
+.doc-body li {
+  margin-top: 0.35rem;
+}
+
+.doc-body table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.doc-body th,
+.doc-body td {
+  border-bottom: 1px solid var(--line);
+  padding: 0.6rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.doc-body th {
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.doc-body .blank {
+  color: var(--muted);
+}
+
+@page {
+  margin: 16mm;
+}
+
+@media print {
+  body {
+    background: white;
+  }
+
+  .doc-sheet,
+  .doc-sheet * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .doc-body tr {
+    break-inside: avoid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-delay-1,
+  .animate-rise-delay-2,
+  .animate-rise-delay-3,
+  .hero-media,
+  .accent-line {
+    animation: none;
+  }
+}
