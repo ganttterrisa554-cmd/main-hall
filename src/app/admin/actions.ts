@@ -5,13 +5,14 @@ import { redirect } from "next/navigation";
 import { buildInvitation, formatMoney, sender, type Stage } from "@/data/admin";
 import { team } from "@/data/team";
 import { createSession, destroySession, requireTeam } from "@/lib/auth";
-import { pullInboundEmails, sendEmail } from "@/lib/mail";
+import { emailHistoryFor, pullInboundEmails, sendEmail } from "@/lib/mail";
 import { siteOrigin } from "@/lib/origin";
 import { setUpPartner, type AgreedResult } from "@/lib/partnerFlow";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import {
   createEvent,
   createPerson,
+  findPersonByEmail,
   findUserByEmail,
   getEvent,
   getJobForPerson,
@@ -52,12 +53,17 @@ export async function addPerson(_: FormState, form: FormData): Promise<FormState
   await requireTeam();
   const name = text(form, "name");
   if (name.length < 2) return { error: "Add their name." };
+  const email = text(form, "email");
+  if (email) {
+    const existing = await findPersonByEmail(email);
+    if (existing) return { error: `${email} is already saved as ${existing.name} — see their page instead.` };
+  }
   const invited = text(form, "intent") === "invited";
   const id = await createPerson({
     name,
     headline: text(form, "headline"),
     city: text(form, "city"),
-    email: text(form, "email"),
+    email,
     phone: text(form, "phone"),
     jobgetUrl: text(form, "jobgetUrl"),
     highlights: form.getAll("highlight").map(String).map((h) => h.trim()).filter(Boolean),
@@ -84,6 +90,11 @@ export async function sendInvitation(personId: string): Promise<FormState> {
   const person = await getPerson(personId);
   if (!person) return { error: "We couldn't find this person." };
   if (!person.email) return { error: "Add their email first." };
+  const prior = (await emailHistoryFor(person.email)).filter((m) => m.status !== "failed");
+  if (prior.length) {
+    const last = prior[0];
+    return { error: `Already emailed ${person.email} on ${last.createdAt.slice(0, 10)} ("${last.subject}"). Find the thread in the inbox to follow up.` };
+  }
   const event = await getEvent(person.eventId);
   const invitation = buildInvitation(person, event);
   const sent = await sendEmail({
@@ -175,6 +186,11 @@ export async function composeEmail(_: FormState, form: FormData): Promise<FormSt
   const body = text(form, "body");
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) return { error: "Enter a valid email address." };
   if (!subject || !body) return { error: "Add a subject and a message." };
+  const prior = (await emailHistoryFor(to)).filter((m) => m.status !== "failed");
+  if (prior.length) {
+    const last = prior[0];
+    return { error: `Already emailed ${to} on ${last.createdAt.slice(0, 10)} ("${last.subject}"). Open the existing thread to reply instead.` };
+  }
   const personId = text(form, "personId") || null;
   const result = await sendEmail({ to, subject, text: body, personId, fromName: user.name });
   if (personId) await logActivity(personId, `Email sent: ${subject}`);

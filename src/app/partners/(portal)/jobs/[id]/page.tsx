@@ -101,6 +101,17 @@ export default async function PartnerJobPage({ params }: { params: Params }) {
         )}
       </section>
 
+      <Link
+        href="/partners/pack"
+        className="mt-10 flex items-center justify-between border border-[var(--line)] bg-white p-5 transition hover:border-copper"
+      >
+        <span>
+          <span className="block text-ink">Your documents</span>
+          <span className="mt-1 block text-sm text-muted">Event brief, agreement, and on-site guide</span>
+        </span>
+        <span className="text-copper">→</span>
+      </Link>
+
       <section className="mt-10 text-sm">
         <h2 className="font-display text-xl text-ink">Your contact</h2>
         <p className="mt-2 text-ink">

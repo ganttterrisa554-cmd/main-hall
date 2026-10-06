@@ -3,16 +3,21 @@
 //   npm run partner -- people                 list everyone and where they are
 //   npm run partner -- show <personId>        one person, their job, and their quote
 //   npm run partner -- add '<json>'           save someone you're reaching out to
+//   npm run partner -- check <email>          have we already saved or emailed this address?
+//   npm run partner -- emailed                list every address we've ever sent to
 //   npm run partner -- agree '<json>'         they said yes: event, job link, quote request, login, email
 // See .cursor/rules/partner-flow.mdc for the JSON shapes.
 import { formatLong, formatMoney, getRole, stageInfo } from "@/data/admin";
 import { company } from "@/data/company";
 import { team } from "@/data/team";
+import { alreadyEmailedAddresses, emailHistoryFor } from "@/lib/mail";
+import { sql } from "@/lib/db";
 import { setUpPartner } from "@/lib/partnerFlow";
 import {
   addRole,
   createEvent,
   createPerson,
+  findPersonByEmail,
   getEvent,
   getJobForPerson,
   getPerson,
@@ -155,7 +160,61 @@ async function show(personId: string | undefined) {
   console.log(`  Dashboard: ${origin}/admin/people/${person.id}`);
 }
 
+function printHistory(addr: string, history: { subject: string; status: string; createdAt: string }[]) {
+  for (const m of history) {
+    console.log(`  ${m.createdAt.slice(0, 10)}  [${m.status}]  ${m.subject}`);
+  }
+}
+
+async function check(email: string | undefined) {
+  if (!email) fail("Pass an email address.");
+  const addr = email.trim().toLowerCase();
+  const [person, history] = await Promise.all([findPersonByEmail(addr), emailHistoryFor(addr)]);
+  if (person) {
+    console.log(`Saved: ${person.name} (${person.id}) · ${stageInfo(person.stage).label} · ${person.city || "no city"}`);
+    console.log(`  Dashboard: ${origin}/admin/people/${person.id}`);
+  } else {
+    console.log("Not saved as a person.");
+  }
+  if (history.length) {
+    console.log(`Emailed ${history.length} time${history.length === 1 ? "" : "s"}:`);
+    printHistory(addr, history);
+  } else {
+    console.log("Never emailed.");
+  }
+}
+
+async function emailed() {
+  const rows = await sql`
+    select distinct lower(t) as addr, max(created_at) as last_sent
+    from emails, unnest(to_addrs) as t
+    where direction = 'out' and status <> 'failed'
+    group by 1 order by 2 desc`;
+  if (!rows.length) return console.log("No outbound emails yet.");
+  for (const r of rows) {
+    console.log(`${(r.last_sent as Date).toISOString().slice(0, 10)}  ${String(r.addr)}`);
+  }
+  console.log(`\n${rows.length} addresses emailed.`);
+}
+
 async function add(input: AddInput) {
+  if (input.email) {
+    const addr = input.email.trim().toLowerCase();
+    const [existing, history] = await Promise.all([findPersonByEmail(addr), emailHistoryFor(addr)]);
+    if (existing) {
+      console.log(`Already saved: ${existing.name} (${existing.id}) · ${stageInfo(existing.stage).label}`);
+      console.log(`Dashboard: ${origin}/admin/people/${existing.id}`);
+      if (history.length) {
+        console.log("Prior emails:");
+        printHistory(addr, history);
+      }
+      return;
+    }
+    if (history.length) {
+      console.log(`WARNING: ${addr} was emailed before but isn't saved. Adding anyway. Prior emails:`);
+      printHistory(addr, history);
+    }
+  }
   let roleId = "";
   if (input.eventId) {
     if (!(await getEvent(input.eventId))) fail(`No event with id ${input.eventId}.`);
@@ -220,7 +279,9 @@ const [command, arg] = process.argv.slice(2);
 const commands: Record<string, () => Promise<void>> = {
   events,
   people,
+  emailed,
   show: () => show(arg),
+  check: () => check(arg),
   add: () => add(parse<AddInput>(arg)),
   agree: () => agree(parse<AgreeInput>(arg)),
 };

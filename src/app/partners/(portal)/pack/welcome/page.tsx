@@ -1,22 +1,25 @@
-import { DocShell } from "@/components/partners/DocShell";
-import { pack, sendBack, welcomePack } from "@/data/partnerPack";
+import { DocShell, PackEmpty } from "@/components/partners/DocShell";
+import { formatLong, formatShort } from "@/data/admin";
+import { sendBack, welcomePack } from "@/data/partnerPack";
+import { loadPartnerPack } from "@/lib/partnerPack";
 
 export const metadata = { title: "Welcome & how it works" };
 
-export default function WelcomePage() {
-  const { producer, event } = pack;
+export default async function WelcomePage() {
+  const { person, job, event, role, producer } = await loadPartnerPack();
+  if (!person || !job || !event || !role) return <PackEmpty />;
 
   return (
     <DocShell
       slug="welcome"
       facts={[
-        { label: "Your first job", value: `${event.client} summit` },
-        { label: "Quote due", value: "Wed, Sep 30" },
+        { label: "Your job", value: `${event.client} · ${role.title}` },
+        { label: "Quote due", value: formatShort(job.quoteDue) },
         { label: "Your producer", value: producer.name },
         { label: "Phone", value: producer.phone },
       ]}
     >
-      <p>Hi {pack.preparedFor.split(" ")[0]},</p>
+      <p>Hi {person.name.split(" ")[0]},</p>
       <p>
         Thanks for saying yes. Everything you need for the {event.client} {event.name} is in
         your partner portal. This page explains how working with Main Hall goes, start to finish.
@@ -25,7 +28,7 @@ export default function WelcomePage() {
       <h2>How it works</h2>
       <ol>
         <li>Read the event brief.</li>
-        <li>Send your quote by {pack.quoteDue}.</li>
+        <li>Send your quote by {formatLong(job.quoteDue)}.</li>
         <li>
           Sign the contractor agreement. You only sign it once; it covers every future job
           with us.

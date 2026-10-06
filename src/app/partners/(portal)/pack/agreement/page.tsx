@@ -1,15 +1,19 @@
-import { DocShell } from "@/components/partners/DocShell";
+import { DocShell, PackEmpty } from "@/components/partners/DocShell";
 import { SignBox } from "@/components/partners/SignBox";
-import { pack } from "@/data/partnerPack";
+import { docDate } from "@/data/partnerPack";
+import { loadPartnerPack } from "@/lib/partnerPack";
 
 export const metadata = { title: "Contractor agreement" };
 
-export default function AgreementPage() {
+export default async function AgreementPage() {
+  const { person } = await loadPartnerPack();
+  if (!person) return <PackEmpty />;
+
   return (
     <DocShell
       slug="agreement"
       facts={[
-        { label: "Between", value: `Main Hall & ${pack.preparedFor}` },
+        { label: "Between", value: `Main Hall & ${person.name}` },
         { label: "Starts", value: "When you sign" },
         { label: "Covers", value: "Every future job" },
         { label: "Sign", value: "Once, online" },
@@ -22,7 +26,7 @@ export default function AgreementPage() {
       <h2>1. Who this is between</h2>
       <p>
         This agreement is between Main Hall Events (&ldquo;Main Hall&rdquo;, &ldquo;we&rdquo;) and{" "}
-        {pack.preparedFor}, trading as {pack.business} (&ldquo;you&rdquo;). It starts on the
+        {person.name} (&ldquo;you&rdquo;). It starts on the
         date you sign it.
       </p>
 
@@ -144,15 +148,13 @@ export default function AgreementPage() {
           Name and title · Date
         </div>
         <div>
-          <strong>
-            {pack.preparedFor}, {pack.business}
-          </strong>
+          <strong>{person.name}</strong>
           Date
         </div>
       </div>
 
       <div className="mt-8 print:hidden">
-        <SignBox expectedName={pack.preparedFor} date={pack.packOn} />
+        <SignBox expectedName={person.name} date={docDate()} />
       </div>
     </DocShell>
   );

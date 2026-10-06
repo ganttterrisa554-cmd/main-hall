@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { team } from "@/data/team";
 import { newId, sql } from "@/lib/db";
 
 const DEFAULT_FROM = "Main Hall Events <onboarding@resend.dev>";
@@ -21,6 +22,13 @@ function client() {
   return key ? new Resend(key) : null;
 }
 
+/** A named sender mails from their own address on our domain (daniel@…), which reads as a person rather than a shared inbox. */
+function senderAddress(fromName: string | undefined, settings: ReturnType<typeof mailSettings>) {
+  if (!fromName || settings.testMode) return null;
+  const member = team.find((m) => m.name.toLowerCase() === fromName.trim().toLowerCase());
+  return member && member.email.endsWith(`@${settings.domain}`) ? member.email : null;
+}
+
 function threadReplyTo(threadId: string) {
   const { address, testMode } = mailSettings();
   if (testMode) return undefined;
@@ -34,6 +42,7 @@ export async function sendEmail(input: {
   to: string;
   subject: string;
   text: string;
+  html?: string;
   personId?: string | null;
   threadId?: string;
   fromName?: string;
@@ -42,7 +51,8 @@ export async function sendEmail(input: {
   const id = newId("m-", 10);
   const threadId = input.threadId ?? newId("t-", 8);
   const to = input.to.trim().toLowerCase();
-  const from = input.fromName && !settings.testMode ? `${input.fromName} <${settings.address}>` : settings.from;
+  const fromAddr = senderAddress(input.fromName, settings) ?? settings.address;
+  const from = input.fromName && !settings.testMode ? `${input.fromName} <${fromAddr}>` : settings.from;
 
   let status: SendResult["status"] = "not_sent";
   let error = "";
@@ -57,6 +67,7 @@ export async function sendEmail(input: {
       to: [to],
       subject: input.subject,
       text: input.text,
+      html: input.html,
       replyTo: threadReplyTo(threadId),
     });
     if (sendError) {
@@ -68,9 +79,9 @@ export async function sendEmail(input: {
     }
   }
 
-  await sql`insert into emails (id, thread_id, direction, from_addr, from_name, to_addrs, subject, text_body, person_id, status, error, resend_id, read_at)
-    values (${id}, ${threadId}, 'out', ${settings.address}, ${input.fromName ?? "Main Hall"}, ${[to]}, ${input.subject},
-            ${input.text}, ${input.personId ?? null}, ${status}, ${error}, ${resendId}, now())`;
+  await sql`insert into emails (id, thread_id, direction, from_addr, from_name, to_addrs, subject, text_body, html_body, person_id, status, error, resend_id, read_at)
+    values (${id}, ${threadId}, 'out', ${fromAddr}, ${input.fromName ?? "Main Hall"}, ${[to]}, ${input.subject},
+            ${input.text}, ${input.html ?? ""}, ${input.personId ?? null}, ${status}, ${error}, ${resendId}, now())`;
 
   return { id, threadId, status, error };
 }
@@ -248,6 +259,37 @@ export async function markThreadRead(threadId: string) {
 export async function listEmailsForPerson(personId: string) {
   const rows = await sql`select * from emails where person_id = ${personId} order by created_at desc limit 50`;
   return rows.map(mapMessage);
+}
+
+export type SentRecord = { subject: string; status: string; threadId: string; createdAt: string };
+
+// Every outbound email ever sent to an address, newest first.
+export async function emailHistoryFor(address: string): Promise<SentRecord[]> {
+  const to = address.trim().toLowerCase();
+  if (!to) return [];
+  const rows = await sql`
+    select subject, status, thread_id, created_at
+    from emails
+    where direction = 'out'
+      and exists (select 1 from unnest(to_addrs) as t where lower(t) = ${to})
+    order by created_at desc`;
+  return rows.map((r) => ({
+    subject: String(r.subject),
+    status: String(r.status),
+    threadId: String(r.thread_id),
+    createdAt: (r.created_at as Date).toISOString(),
+  }));
+}
+
+// Addresses we've already sent to, lowercased — for bulk dedupe before a batch.
+export async function alreadyEmailedAddresses(addresses: string[]): Promise<Set<string>> {
+  const list = addresses.map((a) => a.trim().toLowerCase()).filter(Boolean);
+  if (!list.length) return new Set();
+  const rows = await sql`
+    select distinct lower(t) as addr
+    from emails, unnest(to_addrs) as t
+    where direction = 'out' and status <> 'failed' and lower(t) = any(${list})`;
+  return new Set(rows.map((r) => String(r.addr)));
 }
 
 export async function unreadCount() {

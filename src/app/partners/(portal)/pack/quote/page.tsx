@@ -1,67 +1,45 @@
-import { Fragment } from "react";
-import { DocShell } from "@/components/partners/DocShell";
-import { pack } from "@/data/partnerPack";
+import Link from "next/link";
+import { DocShell, PackEmpty } from "@/components/partners/DocShell";
+import { formatLong, formatMoney, formatShort } from "@/data/admin";
+import { loadPartnerPack } from "@/lib/partnerPack";
 
 export const metadata = { title: "Quote request" };
 
-const sections: { heading: string; rows: [string, string][] }[] = [
-  {
-    heading: "Equipment",
-    rows: [
-      ["Main-stage sound system (mixing desk, speakers)", "1 set"],
-      ["Wireless mics: 4 handheld, 6 clip-on", "10"],
-      ["Center LED screen (about 20 × 11 ft)", "1"],
-      ["Side LED screens", "2"],
-      ["Camera(s) for side screens", "___"],
-      ["Speaker preview screen", "1"],
-      ["Side-room kits (projector, screen, 2 mics, speakers)", "2"],
-      ["Laptops for slides (main + backup)", "2"],
-    ],
-  },
-  {
-    heading: "Crew",
-    rows: [
-      ["Sound engineer (setup day + event day)", "___ hrs"],
-      ["Screens / video tech", "___ hrs"],
-      ["Side-room tech", "___ hrs"],
-      ["Setup and pack-up crew", "___ people × ___ hrs"],
-    ],
-  },
-  {
-    heading: "Other",
-    rows: [
-      ["Transport and delivery", "___"],
-      ["Anything else (please list)", "___"],
-    ],
-  },
-];
+const statusText = {
+  submitted: "Sent — we'll reply within two business days",
+  accepted: "Accepted — you're booked",
+  declined: "Not going ahead this time",
+} as const;
 
-export default function QuotePage() {
+export default async function QuotePage() {
+  const { job, event } = await loadPartnerPack();
+  if (!job || !event) return <PackEmpty />;
+
   return (
     <DocShell
       slug="quote"
       facts={[
-        { label: "Due", value: "Wed, Sep 30 · 5 PM CT" },
+        { label: "Due", value: formatShort(job.quoteDue) },
         { label: "Price valid for", value: "30 days" },
         { label: "Send it", value: "In your portal" },
         { label: "Our answer", value: "Within 2 business days" },
       ]}
     >
       <p>
-        Please send us your price for the work in the event brief. You can fill in the form
-        in your portal, or use your own format as long as it covers everything below.
+        Please send us your price for the work in the event brief. Fill in the quote form in
+        your portal — it only takes a minute.
       </p>
 
       <table>
         <tbody>
           <tr>
             <th>Due</th>
-            <td>{pack.quoteDue}</td>
+            <td>{formatLong(job.quoteDue)}</td>
           </tr>
           <tr>
             <th>Event</th>
             <td>
-              {pack.event.client} · {pack.event.name} · {pack.event.date}
+              {event.client} · {event.name} · {formatLong(event.date)}
             </td>
           </tr>
           <tr>
@@ -71,55 +49,41 @@ export default function QuotePage() {
         </tbody>
       </table>
 
-      <h2>Quote form</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Quantity</th>
-            <th>Price</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sections.map((section) => (
-            <Fragment key={section.heading}>
+      <h2>Your quote</h2>
+      {job.quoteStatus === "requested" ? (
+        <>
+          <table>
+            <tbody>
               <tr>
-                <td colSpan={3}>
-                  <strong>{section.heading}</strong>
-                </td>
+                <th>Your rate</th>
+                <td>Flat for the night, or hourly × expected hours</td>
               </tr>
-              {section.rows.map(([item, qty]) => (
-                <tr key={item}>
-                  <td>{item}</td>
-                  <td className="blank">{qty}</td>
-                  <td className="blank">$ ________</td>
-                </tr>
-              ))}
-            </Fragment>
-          ))}
-          <tr>
-            <td colSpan={2}>
-              <strong>Subtotal</strong>
-            </td>
-            <td className="blank">$ ________</td>
-          </tr>
-          <tr>
-            <td colSpan={2}>Sales tax (if you charge it)</td>
-            <td className="blank">$ ________</td>
-          </tr>
-          <tr className="total">
-            <td colSpan={2}>Total</td>
-            <td className="blank">$ ________</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2>Please also tell us</h2>
-      <ul>
-        <li>Anything in the brief you can&apos;t cover, or would suggest doing differently.</li>
-        <li>What you need from the venue or from us (power, parking, loading time).</li>
-        <li>How many people you&apos;ll bring. Names can come later.</li>
-      </ul>
+              <tr>
+                <th>Travel</th>
+                <td>If any</td>
+              </tr>
+              <tr>
+                <th>Anything else</th>
+                <td>Please list</td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="print:hidden">
+            <Link
+              href={`/partners/jobs/${job.id}`}
+              className="inline-block bg-copper px-5 py-2.5 text-sm font-medium text-mist transition hover:bg-ink"
+            >
+              Fill in your quote →
+            </Link>
+          </p>
+        </>
+      ) : (
+        <p>
+          Your quote:{" "}
+          <strong>{job.quoteAmount != null ? formatMoney(job.quoteAmount) : "—"}</strong>
+          {` · ${statusText[job.quoteStatus]}`}
+        </p>
+      )}
 
       <h2>What happens after you send it</h2>
       <ol>

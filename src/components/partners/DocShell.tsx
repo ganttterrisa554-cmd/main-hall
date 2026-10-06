@@ -1,24 +1,28 @@
 import Link from "next/link";
 import { PrintButton } from "@/components/partners/PrintButton";
 import { company } from "@/data/company";
-import { allDocs, findDoc, pack, welcomePack, type PackDoc } from "@/data/partnerPack";
+import {
+  bookingConfirmation,
+  docDate,
+  docRef,
+  findDoc,
+  welcomePack,
+  type PackDoc,
+} from "@/data/partnerPack";
+import { loadPartnerPack } from "@/lib/partnerPack";
 
 export type DocFact = { label: string; value: string };
 
 function positionLabel(doc: PackDoc) {
   switch (doc.stage) {
-    case "before":
-      return "Sent before they join";
     case "welcome":
-      return `Welcome pack · ${welcomePack.findIndex((d) => d.slug === doc.slug) + 1} of ${welcomePack.length}`;
+      return `Your documents · ${welcomePack.findIndex((d) => d.slug === doc.slug) + 1} of ${welcomePack.length}`;
     case "booking":
-      return "Sent for every confirmed job";
-    case "yearly":
-      return "Sent in January, if needed";
+      return "Booking confirmation";
   }
 }
 
-export function DocShell({
+export async function DocShell({
   slug,
   facts,
   children,
@@ -30,9 +34,13 @@ export function DocShell({
   const doc = findDoc(slug);
   if (!doc) return null;
 
-  const index = allDocs.findIndex((d) => d.slug === slug);
-  const prev = allDocs[index - 1];
-  const next = allDocs[index + 1];
+  const { person, job } = await loadPartnerPack();
+  const visibleDocs = job?.quoteStatus === "accepted" ? [...welcomePack, bookingConfirmation] : welcomePack;
+  const index = visibleDocs.findIndex((d) => d.slug === slug);
+  const prev = visibleDocs[index - 1];
+  const next = visibleDocs[index + 1];
+  const ref = job ? docRef(doc, job) : doc.code;
+  const date = docDate();
 
   return (
     <div>
@@ -58,8 +66,8 @@ export function DocShell({
               <span className="inline-block bg-ink px-2.5 py-1 text-[10px] tracking-[0.16em] text-mist uppercase">
                 {doc.action}
               </span>
-              <p className="mt-2 text-xs text-muted">Ref {doc.ref}</p>
-              <p className="text-xs text-muted">{doc.date}</p>
+              <p className="mt-2 text-xs text-muted">Ref {ref}</p>
+              <p className="text-xs text-muted">{date}</p>
             </div>
           </header>
 
@@ -70,9 +78,7 @@ export function DocShell({
             <h1 className="font-display mt-2 text-3xl leading-tight text-ink sm:text-[2.5rem]">
               {doc.title}
             </h1>
-            <p className="mt-2 text-sm text-muted">
-              Prepared for {pack.preparedFor} · {pack.business}
-            </p>
+            <p className="mt-2 text-sm text-muted">Prepared for {person?.name ?? "you"}</p>
           </div>
 
           <dl className="mt-8 grid grid-cols-2 gap-px border border-[var(--line)] bg-[var(--line)] sm:grid-cols-4">
@@ -93,7 +99,7 @@ export function DocShell({
               {company.name} · {company.email} · {company.phone} · {company.site}
             </span>
             <span>
-              {doc.title} · {doc.ref}
+              {doc.title} · {ref}
             </span>
           </footer>
         </div>
@@ -113,6 +119,26 @@ export function DocShell({
           </Link>
         )}
       </nav>
+    </div>
+  );
+}
+
+export function PackEmpty() {
+  return (
+    <div>
+      <Link href="/partners/pack" className="text-sm text-muted transition hover:text-copper">
+        ← All documents
+      </Link>
+      <article className="doc-sheet mt-6 overflow-hidden border border-[var(--line)] bg-white shadow-[0_18px_40px_-24px_rgba(18,20,26,0.35)]">
+        <div className="h-1.5 bg-copper" />
+        <div className="px-6 py-10 sm:px-12 sm:py-12">
+          <h1 className="font-display text-3xl leading-tight text-ink">No job assigned yet</h1>
+          <p className="mt-3 text-muted">
+            Your producer will be in touch as soon as a job is assigned to you. Your documents
+            will appear here when that happens.
+          </p>
+        </div>
+      </article>
     </div>
   );
 }

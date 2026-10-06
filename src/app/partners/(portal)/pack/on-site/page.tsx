@@ -1,9 +1,11 @@
 import { DocShell } from "@/components/partners/DocShell";
-import { pack } from "@/data/partnerPack";
+import { loadPartnerPack } from "@/lib/partnerPack";
 
 export const metadata = { title: "On-site guide" };
 
-export default function OnSitePage() {
+export default async function OnSitePage() {
+  const { producer } = await loadPartnerPack();
+
   return (
     <DocShell
       slug="on-site"
@@ -11,7 +13,7 @@ export default function OnSitePage() {
         { label: "Dress", value: "All black" },
         { label: "Arrive", value: "At your call time" },
         { label: "Crew names", value: "7 days before" },
-        { label: "On-site contact", value: pack.producer.name },
+        { label: "On-site contact", value: producer.name },
       ]}
     >
       <p>
@@ -58,7 +60,7 @@ export default function OnSitePage() {
 
       <h2>If something goes wrong</h2>
       <p>
-        Call the producer first: {pack.producer.name}, {pack.producer.phone}. Running late?
+        Call the producer first: {producer.name}, {producer.phone}. Running late?
         Call as soon as you know.
       </p>
 

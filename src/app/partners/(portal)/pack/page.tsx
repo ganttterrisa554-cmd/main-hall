@@ -1,33 +1,9 @@
 import Link from "next/link";
-import {
-  allDocs,
-  invitation,
-  laterDocs,
-  sendBack,
-  welcomePack,
-  type PackDoc,
-} from "@/data/partnerPack";
+import { formatLong } from "@/data/admin";
+import { bookingConfirmation, sendBack, welcomePack, type PackDoc } from "@/data/partnerPack";
+import { loadPartnerPack } from "@/lib/partnerPack";
 
-export const metadata = { title: "Partner documents" };
-
-const steps = [
-  { n: "1", title: "Find them", body: "You spot their profile on JobGet." },
-  {
-    n: "2",
-    title: "Invite them",
-    body: "Send the job invitation: the event, the work, and why them.",
-  },
-  {
-    n: "3",
-    title: "They say yes",
-    body: "They get their partner login, with 5 documents already waiting.",
-  },
-  {
-    n: "4",
-    title: "They send back",
-    body: "Their quote, signed agreement, W-9, and payment details. Then you confirm the booking.",
-  },
-];
+export const metadata = { title: "Your documents" };
 
 function DocRow({ doc }: { doc: PackDoc }) {
   return (
@@ -51,64 +27,45 @@ function DocRow({ doc }: { doc: PackDoc }) {
   );
 }
 
-export default function PackIndexPage() {
-  const required = sendBack.filter((s) => s.required);
-  const optional = sendBack.filter((s) => !s.required);
+export default async function PackIndexPage() {
+  const { job, event, producer } = await loadPartnerPack();
 
   return (
     <div>
       <Link href="/partners" className="text-sm text-muted transition hover:text-copper">
         ← Back
       </Link>
-      <h1 className="font-display mt-6 text-3xl text-ink sm:text-4xl">Partner documents</h1>
+      <h1 className="font-display mt-6 text-3xl text-ink sm:text-4xl">Your documents</h1>
       <p className="mt-3 text-base text-muted">
-        All {allDocs.length} documents Main Hall sends a partner, from the first invitation to
-        the year-end tax letter. Click any document to read it.
+        {event
+          ? `Everything for ${event.client} · ${event.name} on ${formatLong(event.date)}.`
+          : "No job assigned yet — your producer will be in touch."}
       </p>
 
-      <ol className="mt-10 grid gap-px border border-[var(--line)] bg-[var(--line)] sm:grid-cols-2">
-        {steps.map((step) => (
-          <li key={step.n} className="bg-mist p-5">
-            <p className="font-display text-sm text-copper">{step.n}</p>
-            <p className="font-display mt-2 text-lg text-ink">{step.title}</p>
-            <p className="mt-1 text-sm text-muted">{step.body}</p>
-          </li>
-        ))}
-      </ol>
+      {job && event && (
+        <>
+          <section className="mt-12">
+            <h2 className="font-display text-xl text-ink">Read and sign</h2>
+            <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
+              {welcomePack.map((doc) => (
+                <DocRow key={doc.slug} doc={doc} />
+              ))}
+            </ul>
+          </section>
+
+          {job.quoteStatus === "accepted" && (
+            <section className="mt-12">
+              <h2 className="font-display text-xl text-ink">Your booking</h2>
+              <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
+                <DocRow doc={bookingConfirmation} />
+              </ul>
+            </section>
+          )}
+        </>
+      )}
 
       <section className="mt-12">
-        <h2 className="font-display text-xl text-ink">Before they agree: 1 document</h2>
-        <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
-          <DocRow doc={invitation} />
-        </ul>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="font-display text-xl text-ink">
-          The moment they agree: {welcomePack.length} documents in their login
-        </h2>
-        <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
-          {welcomePack.map((doc) => (
-            <DocRow key={doc.slug} doc={doc} />
-          ))}
-        </ul>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="font-display text-xl text-ink">
-          After that: {laterDocs.length} more documents
-        </h2>
-        <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
-          {laterDocs.map((doc) => (
-            <DocRow key={doc.slug} doc={doc} />
-          ))}
-        </ul>
-      </section>
-
-      <section className="mt-12">
-        <h2 className="font-display text-xl text-ink">
-          What they send back: {required.length} items, plus {optional.length} only if needed
-        </h2>
+        <h2 className="font-display text-xl text-ink">What we need back from you</h2>
         <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
           {sendBack.map((item) => (
             <li key={item.name} className="flex items-start justify-between gap-4 py-4 sm:px-2">
@@ -133,6 +90,10 @@ export default function PackIndexPage() {
           ))}
         </ul>
       </section>
+
+      <p className="mt-12 text-sm text-muted">
+        Questions? Call {producer.name} at {producer.phone} or reply to any of our emails.
+      </p>
     </div>
   );
 }

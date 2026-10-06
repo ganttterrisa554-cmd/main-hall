@@ -109,6 +109,16 @@ export async function listPeople(): Promise<Prospect[]> {
   return rows.map((r) => mapPerson(r, []));
 }
 
+export async function findPersonByEmail(email: string): Promise<Prospect | null> {
+  const addr = email.trim().toLowerCase();
+  if (!addr) return null;
+  const rows = await sql`select ${personColumns}
+    from people p left join events e on e.id = p.event_id where lower(p.email) = ${addr} limit 1`;
+  if (!rows[0]) return null;
+  const activity = await sql`select text, at from activity where person_id = ${rows[0].id} order by at, id`;
+  return mapPerson(rows[0], activity.map((a) => ({ at: toIso(a.at), text: String(a.text) })));
+}
+
 export async function getPerson(id: string): Promise<Prospect | null> {
   const [rows, activity] = await Promise.all([
     sql`select ${personColumns} from people p left join events e on e.id = p.event_id where p.id = ${id}`,
