@@ -1,13 +1,16 @@
 import { DocShell, PackEmpty } from "@/components/partners/DocShell";
 import { SignBox } from "@/components/partners/SignBox";
+import { formatDateTime } from "@/data/admin";
 import { docDate } from "@/data/partnerPack";
 import { loadPartnerPack } from "@/lib/partnerPack";
+import { getSignature } from "@/lib/repo";
 
 export const metadata = { title: "Contractor agreement" };
 
 export default async function AgreementPage() {
   const { person } = await loadPartnerPack();
   if (!person) return <PackEmpty />;
+  const signature = await getSignature(person.id, "agreement");
 
   return (
     <DocShell
@@ -154,7 +157,13 @@ export default async function AgreementPage() {
       </div>
 
       <div className="mt-8 print:hidden">
-        <SignBox expectedName={person.name} date={docDate()} />
+        <SignBox
+          expectedName={person.name}
+          date={docDate()}
+          signed={
+            signature ? { name: signature.signedName, date: formatDateTime(signature.signedAt) } : null
+          }
+        />
       </div>
     </DocShell>
   );

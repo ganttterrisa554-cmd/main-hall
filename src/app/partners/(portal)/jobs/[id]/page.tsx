@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { QuoteForm } from "@/components/partners/QuoteForm";
+import { QuoteSentModal } from "@/components/partners/QuoteSentModal";
 import { formatDateTime, formatLong, formatMoney, getRole } from "@/data/admin";
 import { company } from "@/data/company";
 import { getTeamMember } from "@/data/team";
@@ -10,6 +11,11 @@ import { getEvent, getJob } from "@/lib/repo";
 type Params = Promise<{ id: string }>;
 
 export const metadata = { title: "Your job" };
+
+const JUST_SUBMITTED_MS = 120_000;
+function justSubmitted(iso: string | null) {
+  return iso ? Date.now() - new Date(iso).getTime() < JUST_SUBMITTED_MS : false;
+}
 
 export default async function PartnerJobPage({ params }: { params: Params }) {
   const { id } = await params;
@@ -99,6 +105,7 @@ export default async function PartnerJobPage({ params }: { params: Params }) {
             )}
           </div>
         )}
+        {justSubmitted(job.quoteSubmittedAt) && <QuoteSentModal />}
       </section>
 
       <Link
@@ -111,6 +118,11 @@ export default async function PartnerJobPage({ params }: { params: Params }) {
         </span>
         <span className="text-copper">→</span>
       </Link>
+      <p className="mt-4 text-sm">
+        <Link href="/partners/details" className="text-copper">
+          Your details (W-9 & payment) →
+        </Link>
+      </p>
 
       <section className="mt-10 text-sm">
         <h2 className="font-display text-xl text-ink">Your contact</h2>

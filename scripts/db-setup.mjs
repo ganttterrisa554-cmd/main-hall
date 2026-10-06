@@ -102,6 +102,37 @@ const schema = [
   )`,
   `create index if not exists emails_thread_idx on emails(thread_id, created_at)`,
   `create index if not exists emails_person_idx on emails(person_id)`,
+  `create table if not exists partner_signatures (
+    person_id text not null references people(id) on delete cascade,
+    doc text not null,
+    signed_name text not null,
+    signed_at timestamptz not null default now(),
+    primary key (person_id, doc)
+  )`,
+  `create table if not exists partner_details (
+    person_id text primary key references people(id) on delete cascade,
+    w9_filename text not null default '',
+    w9_mime text not null default '',
+    w9_data bytea,
+    w9_uploaded_at timestamptz,
+    pay_account_name text not null default '',
+    pay_bank text not null default '',
+    pay_routing_enc text not null default '',
+    pay_account_enc text not null default '',
+    pay_last4 text not null default '',
+    pay_updated_at timestamptz,
+    updated_at timestamptz not null default now()
+  )`,
+  `create table if not exists chat_messages (
+    id text primary key,
+    person_id text not null references people(id) on delete cascade,
+    direction text not null check (direction in ('in','out')),
+    body text not null,
+    author_name text not null default '',
+    read_at timestamptz,
+    created_at timestamptz not null default now()
+  )`,
+  `create index if not exists chat_messages_person_idx on chat_messages(person_id, created_at)`,
 ];
 
 const events = [

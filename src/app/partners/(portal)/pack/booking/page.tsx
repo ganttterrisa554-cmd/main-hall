@@ -125,6 +125,8 @@ export default async function BookingPage() {
         <SignBox
           expectedName={person.name}
           date={docDate()}
+          doc="booking"
+          signed={null}
           prompt="Type your full name to accept this booking."
           button="Accept booking"
           done="Accepted"

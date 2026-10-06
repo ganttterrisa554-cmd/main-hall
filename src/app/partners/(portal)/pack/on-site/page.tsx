@@ -31,7 +31,7 @@ export default async function OnSitePage() {
       <h2>Arriving</h2>
       <ul>
         <li>Arrive at your call time. Don&apos;t arrive before your loading slot.</li>
-        <li>Tap &ldquo;I&apos;ve arrived&rdquo; in the portal, then find the producer.</li>
+        <li>When you arrive, find the producer.</li>
         <li>Keep your badge visible all day.</li>
       </ul>
 

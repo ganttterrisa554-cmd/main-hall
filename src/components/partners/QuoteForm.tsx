@@ -40,6 +40,17 @@ export function QuoteForm({ jobId }: { jobId: string }) {
         />
       </label>
       <label className="block">
+        <span className="text-sm text-ink">Your phone number</span>
+        <input
+          name="phone"
+          type="tel"
+          inputMode="tel"
+          required
+          placeholder="(646) 555-0134"
+          className={inputClass}
+        />
+      </label>
+      <label className="block">
         <span className="text-sm text-ink">Anything else?</span>
         <span className="ml-2 text-xs text-muted">optional</span>
         <textarea

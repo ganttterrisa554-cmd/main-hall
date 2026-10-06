@@ -115,14 +115,14 @@ export const sendBack: SendBackItem[] = [
     name: "W-9 tax form",
     required: true,
     when: "Once",
-    how: "The official IRS form, uploaded to the portal.",
+    how: "The official IRS form — upload it on the Your details page.",
     href: "https://www.irs.gov/forms-pubs/about-form-w-9",
   },
   {
     name: "Payment details",
     required: true,
     when: "Once",
-    how: "Bank details for direct deposit, entered in the portal.",
+    how: "Bank details for direct deposit — add them on the Your details page.",
   },
   {
     name: "Insurance certificate",

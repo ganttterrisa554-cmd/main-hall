@@ -10,6 +10,7 @@ import { siteOrigin } from "@/lib/origin";
 import { setUpPartner, type AgreedResult } from "@/lib/partnerFlow";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import {
+  addChatMessage,
   createEvent,
   createPerson,
   findPersonByEmail,
@@ -221,4 +222,19 @@ export async function checkForNewMail(): Promise<FormState> {
   revalidatePath("/admin/inbox");
   if (result.error) return { error: result.error };
   return { ok: result.added ? `${result.added} new email${result.added === 1 ? "" : "s"}.` : "No new email." };
+}
+
+export async function sendAdminChatMessage(_: FormState, form: FormData): Promise<FormState> {
+  const user = await requireTeam();
+  const personId = text(form, "personId");
+  const body = text(form, "body");
+  if (!personId) return { error: "We couldn't find this person." };
+  if (!body) return { error: "Write a reply first." };
+  if (body.length > 2000) return { error: "Keep it under 2,000 characters." };
+  const person = await getPerson(personId);
+  if (!person) return { error: "We couldn't find this person." };
+  await addChatMessage(person.id, "out", body, user.name || "Main Hall");
+  revalidatePath(`/admin/people/${person.id}`);
+  revalidatePath("/admin");
+  return { ok: "Reply sent." };
 }

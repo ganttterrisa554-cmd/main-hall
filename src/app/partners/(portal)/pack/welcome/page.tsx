@@ -33,7 +33,7 @@ export default async function WelcomePage() {
           Sign the contractor agreement. You only sign it once; it covers every future job
           with us.
         </li>
-        <li>Upload your W-9 and add your payment details.</li>
+        <li>Upload your W-9 and add your payment details on the Your details page.</li>
         <li>
           We confirm the booking by email, usually within 2 business days of getting your
           quote.

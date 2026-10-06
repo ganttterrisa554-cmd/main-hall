@@ -247,3 +247,112 @@ export async function upsertPartnerUser(person: Prospect, passwordHash: string) 
 export async function updatePassword(userId: string, passwordHash: string) {
   await sql`update users set password_hash = ${passwordHash}, must_change_password = false where id = ${userId}`;
 }
+
+export async function getSignature(personId: string, doc: string) {
+  const rows = await sql`select signed_name, signed_at from partner_signatures
+    where person_id = ${personId} and doc = ${doc}`;
+  const row = rows[0];
+  return row ? { signedName: String(row.signed_name), signedAt: toIso(row.signed_at) } : null;
+}
+
+export async function saveSignature(personId: string, doc: string, signedName: string) {
+  await sql`insert into partner_signatures (person_id, doc, signed_name)
+    values (${personId}, ${doc}, ${signedName})
+    on conflict (person_id, doc) do update set signed_name = ${signedName}, signed_at = now()`;
+}
+
+export async function getPartnerDetails(personId: string) {
+  const rows = await sql`select w9_filename, w9_uploaded_at, pay_account_name, pay_bank,
+      pay_last4, pay_updated_at
+    from partner_details where person_id = ${personId}`;
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    w9Filename: String(row.w9_filename),
+    w9UploadedAt: row.w9_uploaded_at ? toIso(row.w9_uploaded_at) : null,
+    payAccountName: String(row.pay_account_name),
+    payBank: String(row.pay_bank),
+    payLast4: String(row.pay_last4),
+    payUpdatedAt: row.pay_updated_at ? toIso(row.pay_updated_at) : null,
+  };
+}
+
+export async function saveW9(personId: string, filename: string, mime: string, data: Buffer) {
+  await sql`insert into partner_details (person_id, w9_filename, w9_mime, w9_data, w9_uploaded_at, updated_at)
+    values (${personId}, ${filename}, ${mime}, ${data}, now(), now())
+    on conflict (person_id) do update set
+      w9_filename = ${filename}, w9_mime = ${mime}, w9_data = ${data},
+      w9_uploaded_at = now(), updated_at = now()`;
+}
+
+export async function savePayment(
+  personId: string,
+  details: { accountName: string; bank: string; routingEnc: string; accountEnc: string; last4: string },
+) {
+  await sql`insert into partner_details (person_id, pay_account_name, pay_bank, pay_routing_enc,
+      pay_account_enc, pay_last4, pay_updated_at, updated_at)
+    values (${personId}, ${details.accountName}, ${details.bank}, ${details.routingEnc},
+      ${details.accountEnc}, ${details.last4}, now(), now())
+    on conflict (person_id) do update set
+      pay_account_name = ${details.accountName}, pay_bank = ${details.bank},
+      pay_routing_enc = ${details.routingEnc}, pay_account_enc = ${details.accountEnc},
+      pay_last4 = ${details.last4}, pay_updated_at = now(), updated_at = now()`;
+}
+
+export async function getW9File(personId: string) {
+  const rows = await sql`select w9_filename, w9_mime, w9_data from partner_details
+    where person_id = ${personId} and w9_data is not null`;
+  const row = rows[0];
+  if (!row || !row.w9_data) return null;
+  return {
+    filename: String(row.w9_filename),
+    mime: String(row.w9_mime),
+    data: Buffer.from(row.w9_data as Uint8Array),
+  };
+}
+
+export type ChatMessage = {
+  id: string;
+  direction: "in" | "out";
+  body: string;
+  authorName: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export async function listChatMessages(personId: string): Promise<ChatMessage[]> {
+  const rows = await sql`select id, direction, body, author_name, read_at, created_at
+    from chat_messages where person_id = ${personId} order by created_at, id`;
+  return rows.map((r) => ({
+    id: String(r.id),
+    direction: r.direction as "in" | "out",
+    body: String(r.body),
+    authorName: String(r.author_name),
+    readAt: r.read_at ? toIso(r.read_at) : null,
+    createdAt: toIso(r.created_at),
+  }));
+}
+
+export async function addChatMessage(personId: string, direction: "in" | "out", body: string, authorName: string) {
+  const id = newId("c-");
+  await sql`insert into chat_messages (id, person_id, direction, body, author_name)
+    values (${id}, ${personId}, ${direction}, ${body}, ${authorName})`;
+  return id;
+}
+
+export async function markChatRead(personId: string, direction: "in" | "out") {
+  await sql`update chat_messages set read_at = now()
+    where person_id = ${personId} and direction = ${direction} and read_at is null`;
+}
+
+export async function unreadChatForAdmin(personId: string) {
+  const rows = await sql`select count(*) as n from chat_messages
+    where person_id = ${personId} and direction = 'in' and read_at is null`;
+  return Number(rows[0]?.n ?? 0);
+}
+
+export async function unreadChatCounts(): Promise<Record<string, number>> {
+  const rows = await sql`select person_id, count(*) as n from chat_messages
+    where direction = 'in' and read_at is null group by person_id`;
+  return Object.fromEntries(rows.map((r) => [String(r.person_id), Number(r.n)]));
+}

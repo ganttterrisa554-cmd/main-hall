@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChatFloater } from "@/components/partners/ChatFloater";
 import { company } from "@/data/company";
 import { requirePartner } from "@/lib/auth";
 import { logoutPartner } from "@/app/partners/actions";
@@ -35,6 +36,8 @@ export default async function PortalLayout({ children }: { children: React.React
         </a>{" "}
         or reply to any of our emails.
       </footer>
+
+      <ChatFloater />
     </>
   );
 }

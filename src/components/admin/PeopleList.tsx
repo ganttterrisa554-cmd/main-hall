@@ -2,7 +2,15 @@ import Link from "next/link";
 import { TeamSection } from "@/components/admin/TeamSection";
 import { getRole, stages, type Prospect, type StaffEvent } from "@/data/admin";
 
-export function PeopleList({ people, events }: { people: Prospect[]; events: StaffEvent[] }) {
+export function PeopleList({
+  people,
+  events,
+  unreadChat,
+}: {
+  people: Prospect[];
+  events: StaffEvent[];
+  unreadChat: Record<string, number>;
+}) {
   const eventById = new Map(events.map((e) => [e.id, e]));
 
   return (
@@ -62,7 +70,15 @@ export function PeopleList({ people, events }: { people: Prospect[]; events: Sta
                       className="flex items-center justify-between gap-4 py-4 transition hover:bg-stone/40 sm:px-2"
                     >
                       <div>
-                        <p className="font-medium text-ink">{person.name}</p>
+                        <p className="font-medium text-ink">
+                          {person.name}
+                          {(unreadChat[person.id] ?? 0) > 0 && (
+                            <span className="ml-2 inline-flex items-center gap-1.5 align-middle text-xs font-medium text-copper">
+                              <span className="inline-block h-1.5 w-1.5 rounded-full bg-copper" />
+                              {unreadChat[person.id]}
+                            </span>
+                          )}
+                        </p>
                         <p className="mt-0.5 text-sm text-muted">
                           {person.headline} · {person.city}
                         </p>
