@@ -46,6 +46,7 @@ export async function sendEmail(input: {
   personId?: string | null;
   threadId?: string;
   fromName?: string;
+  attachments?: { filename: string; content: Buffer }[];
 }): Promise<SendResult> {
   const settings = mailSettings();
   const id = newId("m-", 10);
@@ -69,6 +70,7 @@ export async function sendEmail(input: {
       text: input.text,
       html: input.html,
       replyTo: threadReplyTo(threadId),
+      attachments: input.attachments,
     });
     if (sendError) {
       status = "failed";

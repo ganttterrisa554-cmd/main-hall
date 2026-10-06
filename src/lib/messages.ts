@@ -34,7 +34,7 @@ export function buildPartnerWelcome(input: {
     `Temporary password: ${input.tempPassword}`,
     "You'll choose your own password the first time you log in.",
     "",
-    "Your documents (event brief, quote form, agreement, and on-site guide) are waiting in the portal.",
+    "I've attached the event brief and on-site guide — the full pack (agreement, quote form) is in your portal.",
     "",
     "Any questions, just reply to this email.",
     "",

@@ -1,6 +1,9 @@
 import { getRole } from "@/data/admin";
+import { company } from "@/data/company";
+import { getTeamMember } from "@/data/team";
 import { sendEmail } from "@/lib/mail";
 import { buildPartnerWelcome } from "@/lib/messages";
+import { buildPartnerDocPdfs } from "@/lib/partnerDocs";
 import { generateTempPassword, hashPassword } from "@/lib/password";
 import { createJob, getEvent, getJobForPerson, getPerson, logActivity, setStage, upsertPartnerUser } from "@/lib/repo";
 
@@ -58,7 +61,25 @@ export async function setUpPartner(personId: string, origin: string): Promise<Ag
     tempPassword,
   });
 
-  const sent = await sendEmail({ to: person.email, subject: message.subject, text: message.body, personId: person.id });
+  const member = getTeamMember(event.producerId);
+  const producer = member
+    ? { name: member.name, phone: member.phone, email: member.email, role: member.role }
+    : { name: company.name, phone: company.phone, email: company.email };
+
+  let attachments: { filename: string; content: Buffer }[] = [];
+  try {
+    attachments = await buildPartnerDocPdfs({ person, event, role, producer, quoteDue });
+  } catch (error) {
+    console.error("Failed to build partner doc PDFs", error);
+  }
+
+  const sent = await sendEmail({
+    to: person.email,
+    subject: message.subject,
+    text: message.body,
+    personId: person.id,
+    attachments,
+  });
 
   if (person.stage === "found" || person.stage === "invited") await setStage(person.id, "agreed", "Said yes");
   await logActivity(
